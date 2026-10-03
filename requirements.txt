@@ -7,4 +7,4 @@ joblib
 pillow
 mediapipe==0.10.14
 pandas
-protobuf==3.20.1
+protobuf==4.25.3
