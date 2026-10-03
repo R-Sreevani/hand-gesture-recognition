@@ -436,8 +436,9 @@ def extract_features(image_bgr):
 
 
 # Load trained landmark model
-model = joblib.load("gesture_model_landmarks.pkl")
-
+import os
+model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "gesture_model_landmarks.pkl")
+model = joblib.load(model_path)
 
 # Class names
 classes = ["fist", "open_hand", "peacehand", "thumbs_up"]
