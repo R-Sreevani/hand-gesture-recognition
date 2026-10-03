@@ -1,5 +1,5 @@
 streamlit
-opencv-python
+opencv-python-headless
 numpy
 scikit-learn
 scikit-image
@@ -7,4 +7,4 @@ joblib
 pillow
 mediapipe==0.10.14
 pandas
-protobuf==4.25.3
+protobuf==3.20.1
