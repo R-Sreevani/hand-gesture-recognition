@@ -1,0 +1,10 @@
+streamlit
+opencv-python
+numpy
+scikit-learn
+scikit-image
+joblib
+pillow
+mediapipe==0.10.14
+pandas
+protobuf==4.25.3
