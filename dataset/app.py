@@ -5,7 +5,7 @@ import joblib
 from skimage.feature import hog
 from PIL import Image
 import mediapipe as mp
-
+import os
 
 # ============================================================
 #                    LUXURY UI  (UNCHANGED)
@@ -359,11 +359,32 @@ st.markdown("""
 #         HAND DETECTION SETUP (MediaPipe)
 # ============================================================
 mp_hands = mp.solutions.hands
-hands_detector = mp_hands.Hands(
-    static_image_mode=True,
-    max_num_hands=1,
-    min_detection_confidence=0.3
-)
+
+
+def extract_landmarks(image_bgr):
+    """
+    Returns a 63-dim landmark vector or None.
+    Creates a FRESH detector per call to avoid state caching.
+    """
+    hands_detector = mp_hands.Hands(
+        static_image_mode=True,
+        max_num_hands=1,
+        min_detection_confidence=0.3
+    )
+    try:
+        rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        results = hands_detector.process(rgb)
+
+        if not results.multi_hand_landmarks:
+            return None
+
+        hand = results.multi_hand_landmarks[0]
+        coords = []
+        for lm in hand.landmark:
+            coords.extend([lm.x, lm.y, lm.z])
+        return coords
+    finally:
+        hands_detector.close()
 
 
 def detect_and_crop_hand(image_bgr):
@@ -372,53 +393,35 @@ def detect_and_crop_hand(image_bgr):
     Falls back to full image if no hand found.
     """
     h, w = image_bgr.shape[:2]
-    rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-    results = hands_detector.process(rgb)
+    hands_detector = mp_hands.Hands(
+        static_image_mode=True,
+        max_num_hands=1,
+        min_detection_confidence=0.3
+    )
+    try:
+        rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
+        results = hands_detector.process(rgb)
 
-    if results.multi_hand_landmarks:
-        hand = results.multi_hand_landmarks[0]
-        xs = [lm.x for lm in hand.landmark]
-        ys = [lm.y for lm in hand.landmark]
+        if results.multi_hand_landmarks:
+            hand = results.multi_hand_landmarks[0]
+            xs = [lm.x for lm in hand.landmark]
+            ys = [lm.y for lm in hand.landmark]
 
-        # Add 20% padding around hand
-        pad = 0.2
-        x_min = max(0, int((min(xs) - pad * (max(xs) - min(xs))) * w))
-        x_max = min(w, int((max(xs) + pad * (max(xs) - min(xs))) * w))
-        y_min = max(0, int((min(ys) - pad * (max(ys) - min(ys))) * h))
-        y_max = min(h, int((max(ys) + pad * (max(ys) - min(ys))) * h))
+            pad = 0.2
+            x_min = max(0, int((min(xs) - pad * (max(xs) - min(xs))) * w))
+            x_max = min(w, int((max(xs) + pad * (max(xs) - min(xs))) * w))
+            y_min = max(0, int((min(ys) - pad * (max(ys) - min(ys))) * h))
+            y_max = min(h, int((max(ys) + pad * (max(ys) - min(ys))) * h))
 
-        if x_max > x_min and y_max > y_min:
-            return image_bgr[y_min:y_max, x_min:x_max], True
+            if x_max > x_min and y_max > y_min:
+                return image_bgr[y_min:y_max, x_min:x_max], True
 
-    return image_bgr, False
-
-
-# ============================================================
-#         LANDMARK EXTRACTION (NEW — used for prediction)
-# ============================================================
-def extract_landmarks(image_bgr):
-    """
-    Returns a 63-dim landmark vector [x1,y1,z1, ..., x21,y21,z21]
-    or None if no hand is detected.
-    """
-    rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
-    results = hands_detector.process(rgb)
-
-    if not results.multi_hand_landmarks:
-        return None
-
-    hand = results.multi_hand_landmarks[0]
-    coords = []
-    for lm in hand.landmark:
-        coords.extend([lm.x, lm.y, lm.z])
-    return coords
+        return image_bgr, False
+    finally:
+        hands_detector.close()
 
 
-# ============================================================
-#         (Kept for compatibility — no longer used for prediction)
-# ============================================================
 def extract_features(image_bgr):
-
     hand_crop, found = detect_and_crop_hand(image_bgr)
     hand_crop = cv2.resize(hand_crop, (128, 128))
     gray = cv2.cvtColor(hand_crop, cv2.COLOR_BGR2GRAY)
@@ -436,12 +439,7 @@ def extract_features(image_bgr):
 
 
 # Load trained landmark model
-import os
-model_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "gesture_model_landmarks.pkl")
-model = joblib.load(model_path)
-
-# Class names
-classes = ["fist", "open_hand", "peacehand", "thumbs_up"]
+model = joblib.load(r"D:\Hand_Gesture_Project\gesture_model_landmarks_v2.pkl")
 
 
 # Helper: predict from a PIL image using landmarks
@@ -463,7 +461,7 @@ def predict_gesture(pil_image):
 # ---------------- HERO ----------------
 st.markdown("""
 <div class="hero">
-    <div class="badge">◆ AI POWERED SYSTEM ◆</div>
+    <div class="badge">◆  DIP & ML BASED GESTURE CLASSIFIER  ◆</div>
     <h1>Gesture Recognition</h1>
     <div class="divider"></div>
     <p>Upload or capture a hand gesture and let our intelligent system identify it instantly with precision and elegance.</p>
