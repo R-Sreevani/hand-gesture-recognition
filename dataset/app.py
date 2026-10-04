@@ -439,9 +439,7 @@ def extract_features(image_bgr):
 
 
 # Load trained landmark model
-model = joblib.load(r"D:\Hand_Gesture_Project\gesture_model_landmarks_v2.pkl")
-
-
+model = joblib.load(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "gesture_model_landmarks_v2.pkl"))
 # Helper: predict from a PIL image using landmarks
 def predict_gesture(pil_image):
     image_array = np.array(pil_image)
